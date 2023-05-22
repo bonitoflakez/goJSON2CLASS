@@ -1,0 +1,25 @@
+{
+  "title": "Root",
+  "properties": {
+    "property1": {
+      "type": "string"
+    },
+    "property2": {
+      "type": "integer"
+    },
+    "property3": {
+      "type": "object",
+      "properties": {
+        "nestedProperty1": {
+          "type": "boolean"
+        },
+        "nestedProperty2": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

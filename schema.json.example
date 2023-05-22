@@ -1,14 +1,14 @@
 {
-  "title": "Person",
+  "title": "Root",
   "properties": {
-    "name": {
+    "property1": {
       "type": "string"
     },
-    "age": {
+    "property2": {
       "type": "integer"
     },
-    "email": {
-      "type": "string"
+    "property3": {
+      "type": "boolean"
     }
   }
 }
