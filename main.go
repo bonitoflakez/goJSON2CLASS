@@ -21,7 +21,6 @@ type RustType struct {
 }
 
 func main() {
-	// Read command-line arguments
 	if len(os.Args) < 3 {
 		fmt.Println("Usage: goJSON2TYPES <Schema.json> <Output.rs>")
 		os.Exit(1)
@@ -113,6 +112,8 @@ func getRustType(data interface{}) string {
 
 func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 	if schema.Properties != nil {
+		builder.WriteString("use serde::{Serialize, Deserialize};\n\n")
+		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
 		builder.WriteString(indent + "struct " + schema.Title + " {\n")
 
 		var propertyNames []string
@@ -123,6 +124,7 @@ func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
+			builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
 			builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
 		}
 		builder.WriteString(indent + "}\n\n")
@@ -147,7 +149,9 @@ func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 		}
 	} else if schema.Items != nil {
 		// handle array items
+		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
 		builder.WriteString(indent + "struct " + schema.Title + " {\n")
+		builder.WriteString(indent + "\t" + "#[serde(rename = \"items\")]\n")
 		builder.WriteString(indent + "\t" + "items: Vec<" + getRustType(schema.Items) + ">,\n")
 		builder.WriteString(indent + "}\n\n")
 
@@ -158,6 +162,7 @@ func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 
 func processNestedObjects(builder *strings.Builder, schema *Schema, indent string, structName string) {
 	if schema.Properties != nil {
+		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
 		builder.WriteString(indent + "struct " + structName + " {\n")
 
 		var propertyNames []string
@@ -168,11 +173,12 @@ func processNestedObjects(builder *strings.Builder, schema *Schema, indent strin
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
+			builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
 			builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
 		}
 		builder.WriteString(indent + "}\n\n")
 
-		// Process nested objects within nested properties
+		// handle nested objects within nested properties
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
