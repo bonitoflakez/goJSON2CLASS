@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -87,16 +88,12 @@ func getRustType(data interface{}) string {
 		}
 		switch dataType {
 		case "integer":
-			fmt.Println("i64")
 			return "i64"
 		case "number":
-			fmt.Println("f64")
 			return "f64"
 		case "boolean":
-			fmt.Println("bool")
 			return "bool"
 		case "string":
-			fmt.Println("String")
 			return "String"
 		case "array":
 			items, ok := t["items"].(map[string]interface{})
@@ -116,37 +113,80 @@ func getRustType(data interface{}) string {
 
 func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 	if schema.Properties != nil {
-		// Process object properties
 		builder.WriteString(indent + "struct " + schema.Title + " {\n")
-		for name, property := range schema.Properties {
+
+		var propertyNames []string
+		for name := range schema.Properties {
+			propertyNames = append(propertyNames, name)
+		}
+		sort.Strings(propertyNames)
+
+		for _, name := range propertyNames {
+			property := schema.Properties[name]
 			builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
 		}
 		builder.WriteString(indent + "}\n\n")
-	} else if schema.Items != nil {
-		// Process array items
-		builder.WriteString(indent + "struct " + schema.Title + " {\n")
-		builder.WriteString(indent + "\t" + "items: Vec<" + getRustType(schema.Items) + ">,\n")
-		builder.WriteString(indent + "}\n\n")
 
-		// Process nested objects within array items
-		processNestedObjects(builder, schema.Items, indent+"\t")
-	}
-}
-
-func processNestedObjects(builder *strings.Builder, schema *Schema, indent string) {
-	if schema.Properties != nil {
-		fmt.Println("Processing nested objects")
-		for name, property := range schema.Properties {
-			builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
+		// handle nested objects within object properties
+		for _, name := range propertyNames {
+			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
 				if nestedSchema, ok := propertyMap["properties"].(map[string]interface{}); ok {
-					nestedTitle := name
+					nestedTitle, ok := propertyMap["title"].(string)
+					if !ok {
+						nestedTitle = name
+					}
 					nestedPropertyMap := nestedSchema
 					nestedSchema := &Schema{
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processSchema(builder, nestedSchema, indent+"\t")
+					processNestedObjects(builder, nestedSchema, indent+"\t", nestedTitle)
+				}
+			}
+		}
+	} else if schema.Items != nil {
+		// handle array items
+		builder.WriteString(indent + "struct " + schema.Title + " {\n")
+		builder.WriteString(indent + "\t" + "items: Vec<" + getRustType(schema.Items) + ">,\n")
+		builder.WriteString(indent + "}\n\n")
+
+		// handle nested objects within array items
+		processNestedObjects(builder, schema.Items, indent+"\t", schema.Items.Title)
+	}
+}
+
+func processNestedObjects(builder *strings.Builder, schema *Schema, indent string, structName string) {
+	if schema.Properties != nil {
+		builder.WriteString(indent + "struct " + structName + " {\n")
+
+		var propertyNames []string
+		for name := range schema.Properties {
+			propertyNames = append(propertyNames, name)
+		}
+		sort.Strings(propertyNames)
+
+		for _, name := range propertyNames {
+			property := schema.Properties[name]
+			builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
+		}
+		builder.WriteString(indent + "}\n\n")
+
+		// Process nested objects within nested properties
+		for _, name := range propertyNames {
+			property := schema.Properties[name]
+			if propertyMap, ok := property.(map[string]interface{}); ok {
+				if nestedSchema, ok := propertyMap["properties"].(map[string]interface{}); ok {
+					nestedTitle, ok := propertyMap["title"].(string)
+					if !ok {
+						nestedTitle = name
+					}
+					nestedPropertyMap := nestedSchema
+					nestedSchema := &Schema{
+						Title:      nestedTitle,
+						Properties: nestedPropertyMap,
+					}
+					processNestedObjects(builder, nestedSchema, indent+"\t", nestedTitle)
 				}
 			}
 		}
