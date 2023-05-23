@@ -9,6 +9,7 @@
     },
     "property3": {
       "type": "object",
+      "title": "Property3",
       "properties": {
         "nestedProperty1": {
           "type": "boolean"
@@ -18,6 +19,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "nestedProperty3": {
+          "type": "string"
         }
       }
     }
