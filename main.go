@@ -102,7 +102,7 @@ func getRustType(data interface{}) string {
 		case "object":
 			title, ok := t["title"].(string)
 			if ok {
-				return title
+				return getFirstWordFromTitle(title)
 			}
 		}
 	}
@@ -114,7 +114,7 @@ func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 	if schema.Properties != nil {
 		builder.WriteString("use serde::{Serialize, Deserialize};\n\n")
 		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "struct " + schema.Title + " {\n")
+		builder.WriteString(indent + "struct " + getFirstWordFromTitle(schema.Title) + " {\n")
 
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -143,27 +143,27 @@ func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processNestedObjects(builder, nestedSchema, indent+"\t", nestedTitle)
+					processNestedObjects(builder, nestedSchema, indent+"", nestedTitle)
 				}
 			}
 		}
 	} else if schema.Items != nil {
 		// handle array items
 		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "struct " + schema.Title + " {\n")
+		builder.WriteString(indent + "struct " + getFirstWordFromTitle(schema.Title) + " {\n")
 		builder.WriteString(indent + "\t" + "#[serde(rename = \"items\")]\n")
 		builder.WriteString(indent + "\t" + "items: Vec<" + getRustType(schema.Items) + ">,\n")
 		builder.WriteString(indent + "}\n\n")
 
 		// handle nested objects within array items
-		processNestedObjects(builder, schema.Items, indent+"\t", schema.Items.Title)
+		processNestedObjects(builder, schema.Items, indent+"", schema.Items.Title)
 	}
 }
 
 func processNestedObjects(builder *strings.Builder, schema *Schema, indent string, structName string) {
 	if schema.Properties != nil {
 		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "struct " + structName + " {\n")
+		builder.WriteString(indent + "struct " + getFirstWordFromTitle(structName) + " {\n")
 
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -192,9 +192,14 @@ func processNestedObjects(builder *strings.Builder, schema *Schema, indent strin
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processNestedObjects(builder, nestedSchema, indent+"\t", nestedTitle)
+					processNestedObjects(builder, nestedSchema, indent+"", nestedTitle)
 				}
 			}
 		}
 	}
+}
+
+func getFirstWordFromTitle(title string) string  {
+	titleWords := strings.Split(title, " ")
+	return titleWords[0]
 }
