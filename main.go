@@ -21,13 +21,42 @@ type RustType struct {
 	DataType string
 }
 
+func usage() {
+	fmt.Println("Usage: goJSON2CLASS -l <target-lang> -s <schema.json> -o <output.ext>")
+	fmt.Println()
+	fmt.Println("\t-l >> choose a language.")
+	fmt.Println("\t\tExample: `-l rust` (default: nil)")
+	fmt.Println()
+	fmt.Println("\t-s >> path to file containing JSON schema. (default: schema.json)")
+	fmt.Println("\t\tExample: `-s schema.json`")
+	fmt.Println()
+	fmt.Println("\t-o >> path to output file with extension. (default: output.txt)")
+	fmt.Println("\t\tExample: `-o output.rs`")
+	fmt.Println()
+	fmt.Println("\t-p >> define public if supported by language (default: false)")
+	fmt.Println("\t\tExample: `-p`")
+}
+
 func main() {
-	targetLang := flag.String("l", "unknown", "set a target language")
+	helpMsg := flag.Bool("h", false, "show usage message")
+	targetLang := flag.String("l", "nil", "set a target language")
 	schemaFile := flag.String("s", "schema.json", "path to file containing JSON schema")
-	outputFile := flag.String("o", "output", "path to output file")
+	outputFile := flag.String("o", "output.txt", "path to output file")
 	publicDef := flag.Bool("p", false, "set values to public in output code")
 
 	flag.Parse()
+
+	// show usage message if no flag is passed
+	if flag.NFlag() == 0 {
+		usage()
+		os.Exit(1)
+	}
+
+	// show help message if `-h` flag is used
+	if *helpMsg {
+		usage()
+		os.Exit(1)
+	}
 
 	schema, err := readJSONSchema(*schemaFile)
 	if err != nil {
@@ -35,13 +64,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// for public flag testing
 	if *publicDef && checkPublicSupport(*targetLang) {
-		fmt.Println("Public is on")
-	} else {
-		fmt.Println("Public is off")
+		fmt.Println("public is on")
 	}
 
 	switch *targetLang {
+	case "nil":
+		fmt.Println("No language specified")
+		os.Exit(1)
 	case "rust":
 		rustCode := generateRustCode(schema)
 		outputRustCode(*outputFile, rustCode)
@@ -92,6 +123,7 @@ func outputRustCode(outFile string, rustCode string) {
 		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
+	fmt.Println("Done!")
 }
 
 func generateRustCode(schema *Schema) string {

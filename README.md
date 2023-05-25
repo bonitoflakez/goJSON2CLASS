@@ -26,7 +26,7 @@
 _If your favorite language is missing- please generate an issue or implement it by yourself._
 
 ## Installation
-  
+
 ```sh
 # Clone this repo
 >> git clone https://github.com/salientarc/goJSON2CLASS.git
@@ -37,9 +37,21 @@ _If your favorite language is missing- please generate an issue or implement it 
 >> cd goJSON2CLASS && go build .
 ```
 
-```sh
->> ./goJSON2CLASS
-Usage: goJSON2TYPES <Schema.json> <Output.rs>
+```txt
+>>  .\goJSON2CLASS -h
+Usage: goJSON2CLASS -l <target-lang> -s <schema.json> -o <output.ext>
+
+        -l >> choose a language.
+                Example: `-l rust` (default: nil)
+
+        -s >> path to file containing JSON schema. (default: schema.json)
+                Example: `-s schema.json`
+
+        -o >> path to output file with extension. (default: output.txt)
+                Example: `-o output.rs`
+
+        -p >> define public if supported by language (default: false)
+                Example: `-p`
 ```
 
 ## Example
@@ -81,7 +93,7 @@ Sample JSON Schema
 Output
 
 ```sh
->> .\goJSON2CLASS.exe .\schema.json output.rs
+>> .\goJSON2CLASS.exe -l rust -s schema.json -o output.rs
 Done!
 ```
 
