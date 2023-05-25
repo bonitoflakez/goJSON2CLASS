@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -21,34 +22,32 @@ type RustType struct {
 }
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: goJSON2TYPES <Schema.json> <Output.rs>")
-		os.Exit(1)
-	}
-	inputFile := os.Args[1]
-	outputFile := os.Args[2]
+	targetLang := flag.String("l", "unknown", "set a target language")
+	schemaFile := flag.String("s", "schema.json", "path to file containing JSON schema")
+	outputFile := flag.String("o", "output", "path to output file")
+	publicDef := flag.Bool("p", false, "set values to public in output code")
 
-	schema, err := readJSONSchema(inputFile)
+	flag.Parse()
+
+	schema, err := readJSONSchema(*schemaFile)
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
 	}
 
-	rustCode := generateRustCode(schema)
-
-	err = os.WriteFile(outputFile, []byte(rustCode), 0644)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
+	if *publicDef && checkPublicSupport(*targetLang) {
+		fmt.Println("Public is on")
+	} else {
+		fmt.Println("Public is off")
 	}
 
-	fmt.Println("Done!")
-}
-
-func generateRustCode(schema *Schema) string {
-	var builder strings.Builder
-	processSchema(&builder, schema, "")
-	return builder.String()
+	switch *targetLang {
+	case "rust":
+		rustCode := generateRustCode(schema)
+		outputRustCode(*outputFile, rustCode)
+	default:
+		fmt.Println(*targetLang + " is not supported :(")
+	}
 }
 
 func readJSONSchema(filePath string) (*Schema, error) {
@@ -70,6 +69,35 @@ func readJSONSchema(filePath string) (*Schema, error) {
 	}
 
 	return &schema, nil
+}
+
+func checkPublicSupport(inp string) bool {
+	supportedLanguages := map[string]bool{
+		"rust": true,
+		"java": true,
+		"go":   true,
+		"cpp":  true,
+	}
+
+	return supportedLanguages[inp]
+}
+
+/*
+* TODO: Use `pub` when `-p` flag is used
+ */
+
+func outputRustCode(outFile string, rustCode string) {
+	err := os.WriteFile(outFile, []byte(rustCode), 0644)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+}
+
+func generateRustCode(schema *Schema) string {
+	var builder strings.Builder
+	processSchemaForRust(&builder, schema, "")
+	return builder.String()
 }
 
 func getRustType(data interface{}) string {
@@ -102,7 +130,7 @@ func getRustType(data interface{}) string {
 		case "object":
 			title, ok := t["title"].(string)
 			if ok {
-				return getFirstWordFromTitle(title)
+				return title
 			}
 		}
 	}
@@ -110,7 +138,7 @@ func getRustType(data interface{}) string {
 	return "unknown"
 }
 
-func processSchema(builder *strings.Builder, schema *Schema, indent string) {
+func processSchemaForRust(builder *strings.Builder, schema *Schema, indent string) {
 	if schema.Properties != nil {
 		builder.WriteString("use serde::{Serialize, Deserialize};\n\n")
 		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
@@ -143,7 +171,7 @@ func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processNestedObjects(builder, nestedSchema, indent+"", nestedTitle)
+					processNestedObjectsForRust(builder, nestedSchema, indent+"", nestedTitle)
 				}
 			}
 		}
@@ -156,11 +184,11 @@ func processSchema(builder *strings.Builder, schema *Schema, indent string) {
 		builder.WriteString(indent + "}\n\n")
 
 		// handle nested objects within array items
-		processNestedObjects(builder, schema.Items, indent+"", schema.Items.Title)
+		processNestedObjectsForRust(builder, schema.Items, indent+"", schema.Items.Title)
 	}
 }
 
-func processNestedObjects(builder *strings.Builder, schema *Schema, indent string, structName string) {
+func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, indent string, structName string) {
 	if schema.Properties != nil {
 		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
 		builder.WriteString(indent + "struct " + getFirstWordFromTitle(structName) + " {\n")
@@ -192,14 +220,14 @@ func processNestedObjects(builder *strings.Builder, schema *Schema, indent strin
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processNestedObjects(builder, nestedSchema, indent+"", nestedTitle)
+					processNestedObjectsForRust(builder, nestedSchema, indent+"", nestedTitle)
 				}
 			}
 		}
 	}
 }
 
-func getFirstWordFromTitle(title string) string  {
+func getFirstWordFromTitle(title string) string {
 	titleWords := strings.Split(title, " ")
 	return titleWords[0]
 }
