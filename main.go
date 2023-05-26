@@ -74,7 +74,7 @@ func main() {
 		fmt.Println("No language specified")
 		os.Exit(1)
 	case "rust":
-		rustCode := generateRustCode(schema)
+		rustCode := generateRustCode(schema, *publicDef)
 		outputRustCode(*outputFile, rustCode)
 	default:
 		fmt.Println(*targetLang + " is not supported :(")
@@ -113,10 +113,6 @@ func checkPublicSupport(inp string) bool {
 	return supportedLanguages[inp]
 }
 
-/*
-* TODO: Use `pub` when `-p` flag is used
- */
-
 func outputRustCode(outFile string, rustCode string) {
 	err := os.WriteFile(outFile, []byte(rustCode), 0644)
 	if err != nil {
@@ -126,9 +122,9 @@ func outputRustCode(outFile string, rustCode string) {
 	fmt.Println("Done!")
 }
 
-func generateRustCode(schema *Schema) string {
+func generateRustCode(schema *Schema, pubFlag bool) string {
 	var builder strings.Builder
-	processSchemaForRust(&builder, schema, "")
+	processSchemaForRust(&builder, schema, "", pubFlag)
 	return builder.String()
 }
 
@@ -170,11 +166,11 @@ func getRustType(data interface{}) string {
 	return "unknown"
 }
 
-func processSchemaForRust(builder *strings.Builder, schema *Schema, indent string) {
+func processSchemaForRust(builder *strings.Builder, schema *Schema, indent string, pubFlag bool) {
 	if schema.Properties != nil {
 		builder.WriteString("use serde::{Serialize, Deserialize};\n\n")
 		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "struct " + getFirstWordFromTitle(schema.Title) + " {\n")
+		builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
 
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -184,8 +180,13 @@ func processSchemaForRust(builder *strings.Builder, schema *Schema, indent strin
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
-			builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
-			builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
+			if pubFlag {
+				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
+				builder.WriteString(indent + "\tpub " + name + ": " + getRustType(property) + ",\n")
+			} else {
+				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
+				builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
+			}
 		}
 		builder.WriteString(indent + "}\n\n")
 
@@ -203,27 +204,35 @@ func processSchemaForRust(builder *strings.Builder, schema *Schema, indent strin
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processNestedObjectsForRust(builder, nestedSchema, indent+"", nestedTitle)
+					processNestedObjectsForRust(builder, nestedSchema, indent+"", nestedTitle, pubFlag)
 				}
 			}
 		}
 	} else if schema.Items != nil {
 		// handle array items
-		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "struct " + getFirstWordFromTitle(schema.Title) + " {\n")
-		builder.WriteString(indent + "\t" + "#[serde(rename = \"items\")]\n")
-		builder.WriteString(indent + "\t" + "items: Vec<" + getRustType(schema.Items) + ">,\n")
-		builder.WriteString(indent + "}\n\n")
+		if pubFlag {
+			builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
+			builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
+			builder.WriteString(indent + "\t" + "#[serde(rename = \"items\")]\n")
+			builder.WriteString(indent + "\tpub " + "items: Vec<" + getRustType(schema.Items) + ">,\n")
+			builder.WriteString(indent + "}\n\n")
+		} else {
+			builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
+			builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
+			builder.WriteString(indent + "\t" + "#[serde(rename = \"items\")]\n")
+			builder.WriteString(indent + "\t" + "items: Vec<" + getRustType(schema.Items) + ">,\n")
+			builder.WriteString(indent + "}\n\n")
+		}
 
 		// handle nested objects within array items
-		processNestedObjectsForRust(builder, schema.Items, indent+"", schema.Items.Title)
+		processNestedObjectsForRust(builder, schema.Items, indent+"", schema.Items.Title, pubFlag)
 	}
 }
 
-func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, indent string, structName string) {
+func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, indent string, structName string, pubFlag bool) {
 	if schema.Properties != nil {
 		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "struct " + getFirstWordFromTitle(structName) + " {\n")
+		builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(structName) + " {\n")
 
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -233,8 +242,13 @@ func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, inden
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
-			builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
-			builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
+			if pubFlag {
+				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
+				builder.WriteString(indent + "\tpub " + name + ": " + getRustType(property) + ",\n")
+			} else {
+				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
+				builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
+			}
 		}
 		builder.WriteString(indent + "}\n\n")
 
@@ -252,7 +266,7 @@ func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, inden
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processNestedObjectsForRust(builder, nestedSchema, indent+"", nestedTitle)
+					processNestedObjectsForRust(builder, nestedSchema, indent+"", nestedTitle, pubFlag)
 				}
 			}
 		}

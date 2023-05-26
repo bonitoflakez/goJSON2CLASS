@@ -2,11 +2,6 @@
 
 `goJSON2CLASS` is a utility that converts JSON schema to classes
 
-## Requirements
-
-- Go-lang >> **[Installation](https://go.dev/doc/install)**
-- Git
-
 ## Supported Inputs
 
 - [x] JSON Schema
@@ -90,7 +85,7 @@ Sample JSON Schema
 }
 ```
 
-Output
+Command (without `-p` flag)
 
 ```sh
 >> .\goJSON2CLASS.exe -l rust -s schema.json -o output.rs
@@ -120,6 +115,39 @@ struct Property3 {
         nestedProperty2: Vec<String>,
         #[serde(rename = "nestedProperty3")]
         nestedProperty3: String,
+}
+```
+
+Command (with `-p` flag)
+
+```sh
+>> .\goJSON2CLASS.exe -l rust -s .\schema.json -o output.rs -p
+Done!
+```
+
+Generated Rust code
+
+```rs
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Root {
+        #[serde(rename = "property1")]
+        pub property1: String,
+        #[serde(rename = "property2")]
+        pub property2: i64,
+        #[serde(rename = "property3")]
+        pub property3: Property3,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Property3 {
+        #[serde(rename = "nestedProperty1")]
+        pub nestedProperty1: bool,
+        #[serde(rename = "nestedProperty2")]
+        pub nestedProperty2: Vec<String>,
+        #[serde(rename = "nestedProperty3")]
+        pub nestedProperty3: String,
 }
 ```
 
