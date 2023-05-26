@@ -87,7 +87,7 @@ Sample JSON Schema
 
 Command (without `-p` flag)
 
-```sh
+```txt
 >> .\goJSON2CLASS.exe -l rust -s schema.json -o output.rs
 Done!
 ```
@@ -120,7 +120,7 @@ struct Property3 {
 
 Command (with `-p` flag)
 
-```sh
+```txt
 >> .\goJSON2CLASS.exe -l rust -s .\schema.json -o output.rs -p
 Done!
 ```
