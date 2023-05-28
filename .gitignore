@@ -1,4 +1,5 @@
+*.c
 *.rs
-*.json
 *.exe
+*.json
 code_testing

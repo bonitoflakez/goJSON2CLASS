@@ -25,6 +25,7 @@ func writeCCodeToFile(outFile string, CCode string) {
 func generateCCode(schema *Schema) string {
 	var builder strings.Builder
 
+	builder.WriteString("#include <stdio.h>\n")
 	if checkBool(schema) {
 		builder.WriteString("#include <stdbool.h>\n\n")
 	}
@@ -32,23 +33,6 @@ func generateCCode(schema *Schema) string {
 	processSchemaForC(&builder, schema, "")
 	return builder.String()
 }
-
-// func getCType(property map[string]interface{}) string {
-// 	if propertyType, ok := property["type"].(string); ok {
-// 		switch propertyType {
-// 		case "string":
-// 			return "char*"
-// 		case "number":
-// 			return "double"
-// 		case "integer":
-// 			return "int"
-// 		case "boolean":
-// 			return "bool"
-// 		}
-// 	}
-
-// 	return "unknown"
-// }
 
 func getCType(property interface{}) string {
 	switch p := property.(type) {
@@ -68,18 +52,30 @@ func getCType(property interface{}) string {
 			case "object":
 				title, ok := p["title"].(string)
 				if ok {
-					return title
+					return "struct " + title
 				}
 			}
 		}
-	case []interface{}:
-		if len(p) > 0 {
-			if pType, ok := p[0].(map[string]interface{})["type"].(string); ok {
-				return "struct " + getFirstWordFromTitle(pType) + "[]"
+	}
+	return "unknown"
+}
+
+func getItemCType(property interface{}) string {
+	switch p := property.(type) {
+	case map[string]interface{}:
+		if pType, ok := p["type"].(string); ok {
+			switch pType {
+			case "string":
+				return "char"
+			case "number":
+				return "double"
+			case "integer":
+				return "int"
+			case "decimal":
+				return "float"
 			}
 		}
 	}
-
 	return "unknown"
 }
 
@@ -89,11 +85,50 @@ func checkBool(schema *Schema) bool {
 			if propertyMap, ok := property.(map[string]interface{}); ok {
 				if propertyType, ok := propertyMap["type"].(string); ok && propertyType == "boolean" {
 					return true
+				} else if nestedSchema, ok := propertyMap["properties"].(map[string]interface{}); ok {
+					if checkNestedBool(&Schema{Properties: nestedSchema}) {
+						return true
+					}
 				}
 			}
 		}
 	}
 	return false
+}
+
+func checkNestedBool(schema *Schema) bool {
+	if schema.Properties != nil {
+		for _, property := range schema.Properties {
+			if propertyMap, ok := property.(map[string]interface{}); ok {
+				if propertyType, ok := propertyMap["type"].(string); ok && propertyType == "boolean" {
+					return true
+				} else if nestedSchema, ok := propertyMap["properties"].(map[string]interface{}); ok {
+					if checkNestedBool(&Schema{Properties: nestedSchema}) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func isArrayType(property interface{}) bool {
+	if propertyMap, ok := property.(map[string]interface{}); ok {
+		if propertyType, ok := propertyMap["type"].(string); ok && propertyType == "array" {
+			return true
+		}
+	}
+	return false
+}
+
+func getArrayType(property interface{}) interface{} {
+	if propertyMap, ok := property.(map[string]interface{}); ok {
+		if items, ok := propertyMap["items"]; ok {
+			return items
+		}
+	}
+	return nil
 }
 
 func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) {
@@ -109,7 +144,15 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
-			builder.WriteString(indent + "\tstruct " + getCType(property) + " " + name + ";\n")
+			// builder.WriteString(indent + "\t" + getCType(property) + " " + name + ";\n")
+			if isArrayType(property) {
+				itemType := getArrayType(property)
+				// default size 50
+				// TODO: define size inside schema and replace value by that
+				builder.WriteString(indent + "\t" + getItemCType(itemType) + " " + name + "[50];\n")
+			} else {
+				builder.WriteString(indent + "\t" + getCType(property) + " " + name + ";\n")
+			}
 		}
 		builder.WriteString(indent + "};\n\n")
 
@@ -133,6 +176,7 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 		}
 	} else if schema.Items != nil {
 		// Handle array items
+		fmt.Println("using schema.items from processSchemaForC()")
 		builder.WriteString(indent + "struct " + getFirstWordFromTitle(schema.Title) + " {\n")
 		builder.WriteString(indent + "\t" + getCType(schema.Items) + " items;\n")
 		builder.WriteString(indent + "};\n\n")
@@ -141,10 +185,6 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 		processNestedObjectsForC(builder, schema.Items, indent+"")
 	}
 }
-
-/*
-* TODO: Fix output code that shows `unknown <property-name>` in nested property
- */
 
 func processNestedObjectsForC(builder *strings.Builder, schema interface{}, indent string) {
 	if nestedSchema, ok := schema.(*Schema); ok {
@@ -159,11 +199,19 @@ func processNestedObjectsForC(builder *strings.Builder, schema interface{}, inde
 
 			for _, name := range propertyNames {
 				property := nestedSchema.Properties[name]
-				builder.WriteString(indent + "\t" + getCType(property) + " " + name + ";\n")
+				// builder.WriteString(indent + "\t" + getCType(property) + " " + name + ";\n")
+				if isArrayType(property) {
+					itemType := getArrayType(property)
+					// default size 50
+					// TODO: define size inside schema and replace value by that
+					builder.WriteString(indent + "\t" + getItemCType(itemType) + " " + name + "[50];\n")
+				} else {
+					builder.WriteString(indent + "\t" + getCType(property) + " " + name + ";\n")
+				}
 			}
 			builder.WriteString(indent + "};\n\n")
 
-			// Handle nested objects within nested properties
+			// handle nested objects within nested properties
 			for _, name := range propertyNames {
 				property := nestedSchema.Properties[name]
 				if propertyMap, ok := property.(map[string]interface{}); ok {

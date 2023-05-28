@@ -10,13 +10,13 @@
 
 ## Target Languages
 
+- [x] C
+- [ ] Go
+- [ ] C++
+- [ ] Java
 - [x] Rust
 - [ ] JavaScript
 - [ ] TypeScript
-- [ ] Java
-- [ ] Go
-- [ ] C
-- [ ] C++
 
 _If your favorite language is missing- please generate an issue or implement it by yourself._
 
