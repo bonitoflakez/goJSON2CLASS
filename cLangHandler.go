@@ -64,7 +64,7 @@ func getItemCType(property interface{}) string {
 		if pType, ok := p["type"].(string); ok {
 			switch pType {
 			case "string":
-				return "char"
+				return "char*"
 			case "number":
 				return "double"
 			case "integer":
