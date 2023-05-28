@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var preprocessorSizeDefinesMap = make(map[string]int)
+
 type CType struct {
 	Title      string
 	Properties map[string]interface{}
@@ -14,7 +16,8 @@ type CType struct {
 }
 
 func writeCCodeToFile(outFile string, CCode string) {
-	err := os.WriteFile(outFile, []byte(CCode), 0644)
+	var generatedCCode string = getHeaderIncludes() + getPreprocessorDirectives() + CCode
+	err := os.WriteFile(outFile, []byte(generatedCCode), 0644)
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
@@ -24,11 +27,6 @@ func writeCCodeToFile(outFile string, CCode string) {
 
 func generateCCode(schema *Schema) string {
 	var builder strings.Builder
-
-	builder.WriteString("#include <stdio.h>\n")
-	if checkBool(schema) {
-		builder.WriteString("#include <stdbool.h>\n\n")
-	}
 
 	processSchemaForC(&builder, schema, "")
 	return builder.String()
@@ -52,7 +50,7 @@ func getCType(property interface{}) string {
 			case "object":
 				title, ok := p["title"].(string)
 				if ok {
-					return "struct " + title
+					return "struct " + getFirstWordFromTitle(title)
 				}
 			}
 		}
@@ -66,7 +64,7 @@ func getItemCType(property interface{}) string {
 		if pType, ok := p["type"].(string); ok {
 			switch pType {
 			case "string":
-				return "char"
+				return "char*"
 			case "number":
 				return "double"
 			case "integer":
@@ -133,8 +131,8 @@ func getArrayType(property interface{}) interface{} {
 
 func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) {
 	if schema.Properties != nil {
-
-		builder.WriteString(indent + "struct " + getFirstWordFromTitle(schema.Title) + " {\n")
+		var structName string = getFirstWordFromTitle(schema.Title)
+		builder.WriteString(indent + "struct " + structName + " {\n")
 
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -149,7 +147,8 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 				itemType := getArrayType(property)
 				// default size 50
 				// TODO: define size inside schema and replace value by that
-				builder.WriteString(indent + "\t" + getItemCType(itemType) + " " + name + "[50];\n")
+				var hashDefineMacro string = addToDefinesMap(structName, name, 50)
+				builder.WriteString(indent + "\t" + getItemCType(itemType) + " " + name + "[" + hashDefineMacro + "];\n")
 			} else {
 				builder.WriteString(indent + "\t" + getCType(property) + " " + name + ";\n")
 			}
@@ -189,7 +188,8 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 func processNestedObjectsForC(builder *strings.Builder, schema interface{}, indent string) {
 	if nestedSchema, ok := schema.(*Schema); ok {
 		if nestedSchema.Properties != nil {
-			builder.WriteString(indent + "struct " + getFirstWordFromTitle(nestedSchema.Title) + " {\n")
+			var structName string = getFirstWordFromTitle(nestedSchema.Title)
+			builder.WriteString(indent + "struct " + structName + " {\n")
 
 			var propertyNames []string
 			for name := range nestedSchema.Properties {
@@ -204,7 +204,8 @@ func processNestedObjectsForC(builder *strings.Builder, schema interface{}, inde
 					itemType := getArrayType(property)
 					// default size 50
 					// TODO: define size inside schema and replace value by that
-					builder.WriteString(indent + "\t" + getItemCType(itemType) + " " + name + "[50];\n")
+					var hashDefineMacro string = addToDefinesMap(structName, name, 50)
+					builder.WriteString(indent + "\t" + getItemCType(itemType) + " " + name + "[" + hashDefineMacro + "];\n")
 				} else {
 					builder.WriteString(indent + "\t" + getCType(property) + " " + name + ";\n")
 				}
@@ -231,4 +232,34 @@ func processNestedObjectsForC(builder *strings.Builder, schema interface{}, inde
 			}
 		}
 	}
+}
+
+func addToDefinesMap(structName string, propertyName string, value int) string {
+	var key string = strings.ToUpper(structName) + "_" + strings.ToUpper(propertyName) + "_SIZE"
+	preprocessorSizeDefinesMap[key] = value
+	return key
+}
+
+func getPreprocessorSizeDefinesMap() map[string]int {
+	return preprocessorSizeDefinesMap
+}
+
+func getHeaderIncludes() string {
+	headers := [...]string{"stdio", "stdbool", "stdlib", "string"}
+	var headersString string = ""
+	for _, header := range headers {
+		headersString += "#include <" + header + ".h>\n"
+	}
+	headersString += "\n"
+	return headersString
+}
+
+func getPreprocessorDirectives() string {
+	var hashDefines map[string]int = getPreprocessorSizeDefinesMap()
+	var preProcessorDirectiveString string = ""
+	for key, value := range hashDefines {
+		preProcessorDirectiveString += fmt.Sprintf("#define %s %d\n", key, value)
+	}
+	preProcessorDirectiveString += "\n"
+	return preProcessorDirectiveString
 }
