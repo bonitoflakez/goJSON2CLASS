@@ -8,6 +8,7 @@ import (
 )
 
 var preprocessorSizeDefinesMap = make(map[string]int)
+var typedefStructsList []string
 
 type CType struct {
 	Title      string
@@ -16,7 +17,11 @@ type CType struct {
 }
 
 func writeCCodeToFile(outFile string, CCode string) {
-	var generatedCCode string = getHeaderIncludes() + "\n" + getPreprocessorDirectives() + "\n" + CCode
+	var generatedCCode string = getHeaderIncludes() + "\n" +
+		getPreprocessorDirectives() + "\n" +
+		getTypedefStructsList() + "\n" +
+		CCode
+
 	err := os.WriteFile(outFile, []byte(generatedCCode), 0644)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -71,6 +76,11 @@ func getItemCType(property interface{}) string {
 				return "int"
 			case "decimal":
 				return "float"
+			case "object":
+				title, ok := p["title"].(string)
+				if ok {
+					return getFirstWordFromTitle(title)
+				}
 			}
 		}
 	}
@@ -87,7 +97,7 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 
 		if schema.Title != "" {
 			firstStructName := getFirstWordFromTitle(schema.Title)
-			builder.WriteString("typedef struct " + firstStructName + " " + firstStructName + ";\n")
+			addToTypedefStructsList(firstStructName)
 		}
 
 		for _, name := range propertyNames {
@@ -104,6 +114,19 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 						Properties: nestedPropertyMap,
 					}
 					processSchemaForC(builder, nestedSchema, indent)
+				} else if isArrayType(property) {
+					propertyMap := property.(map[string]interface{})
+					nestedSchema := propertyMap["items"].(map[string]interface{})
+					if isObjectType(nestedSchema) {
+						nestedTitle := nestedSchema["title"].(string)
+						nestedSchema = nestedSchema["properties"].(map[string]interface{})
+						nestedPropertyMap := nestedSchema
+						itemsSchema := &Schema{
+							Title:      nestedTitle,
+							Properties: nestedPropertyMap,
+						}
+						processSchemaForC(builder, itemsSchema, indent)
+					}
 				}
 			}
 		}
@@ -132,6 +155,16 @@ func isArrayType(property interface{}) bool {
 	case map[string]interface{}:
 		if _, ok := p["type"]; ok {
 			return p["type"] == "array"
+		}
+	}
+	return false
+}
+
+func isObjectType(property interface{}) bool {
+	switch p := property.(type) {
+	case map[string]interface{}:
+		if _, ok := p["type"]; ok {
+			return p["type"] == "object"
 		}
 	}
 	return false
@@ -173,4 +206,16 @@ func getPreprocessorDirectives() string {
 	}
 
 	return builder.String()
+}
+
+func addToTypedefStructsList(structName string) {
+	typedefStructsList = append(typedefStructsList, structName)
+}
+
+func getTypedefStructsList() string {
+	var typedefStructBuilder strings.Builder
+	for _, structName := range typedefStructsList {
+		typedefStructBuilder.WriteString("typedef struct " + structName + " " + structName + ";\n")
+	}
+	return typedefStructBuilder.String()
 }
