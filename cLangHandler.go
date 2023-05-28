@@ -50,7 +50,7 @@ func getCType(property interface{}) string {
 			case "object":
 				title, ok := p["title"].(string)
 				if ok {
-					return "struct " + getFirstWordFromTitle(title)
+					return getFirstWordFromTitle(title)
 				}
 			}
 		}
@@ -85,6 +85,11 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 		}
 		sort.Strings(propertyNames)
 
+		if schema.Title != "" {
+			firstStructName := getFirstWordFromTitle(schema.Title)
+			builder.WriteString("typedef struct " + firstStructName + " " + firstStructName + ";\n")
+		}
+
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
@@ -98,7 +103,6 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					builder.WriteString(indent + "typedef struct " + getFirstWordFromTitle(nestedTitle) + " " + getFirstWordFromTitle(nestedTitle) + ";\n")
 					processSchemaForC(builder, nestedSchema, indent)
 				}
 			}
@@ -111,8 +115,6 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 			property := schema.Properties[name]
 			if isArrayType(property) {
 				itemType := getArrayType(property)
-				// default size 50
-				// TODO: define size inside schema and replace value by that
 				var hashDefineMacro string = addToDefinesMap(structName, name, 50)
 				builder.WriteString(indent + "    " + itemType + " " + name + "[" + hashDefineMacro + "]" + ";\n")
 			} else {
