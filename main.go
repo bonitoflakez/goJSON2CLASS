@@ -27,9 +27,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// for public flag testing
-	if *publicDef && checkPublicSupport(*targetLang) {
-		fmt.Println("public is on")
+	if !checkPublicSupport(*targetLang) {
+		fmt.Println("Public is not supported for " + *targetLang)
+		fmt.Println("Choosing default settings")
 	}
 
 	switch *targetLang {
