@@ -11,7 +11,7 @@
 ## Target Languages
 
 - [x] C
-- [ ] Go
+- [x] Go
 - [ ] C++
 - [ ] Java
 - [x] Rust
