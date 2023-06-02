@@ -42,6 +42,9 @@ func main() {
 	case "c":
 		cLangCode := generateCCode(schema)
 		writeCCodeToFile(*outputFile, cLangCode)
+	case "go":
+		goLangCode := generateGoCode(schema)
+		writeGoCodeToFile(*outputFile, goLangCode)
 	default:
 		fmt.Println(*targetLang + " is not supported :(")
 	}
