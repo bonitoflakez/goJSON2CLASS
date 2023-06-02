@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !checkPublicSupport(*targetLang) {
+	if !checkPublicSupport(*targetLang) && *publicDef {
 		fmt.Println("Public is not supported for " + *targetLang)
 		fmt.Println("Choosing default settings")
 	}
@@ -45,6 +45,9 @@ func main() {
 	case "go":
 		goLangCode := generateGoCode(schema)
 		writeGoCodeToFile(*outputFile, goLangCode)
+	case "ts":
+		TSCode := generateTSCode(schema)
+		writeTSCodeToFile(*outputFile, TSCode)
 	default:
 		fmt.Println(*targetLang + " is not supported :(")
 	}
