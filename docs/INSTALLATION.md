@@ -2,7 +2,7 @@
 
 ```sh
 # Clone this repo
->> git clone https://github.com/salientarc/goJSON2CLASS.git
+>> git clone https://github.com/bonitoflakez/goJSON2CLASS.git
 ```
 
 ```sh
