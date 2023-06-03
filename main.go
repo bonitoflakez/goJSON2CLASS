@@ -48,6 +48,9 @@ func main() {
 	case "ts":
 		TSCode := generateTSCode(schema)
 		writeTSCodeToFile(*outputFile, TSCode)
+	case "js":
+		JSCode := generateJSCode(schema)
+		writeJSCodeToFile(*outputFile, JSCode)
 	default:
 		fmt.Println(*targetLang + " is not supported :(")
 	}

@@ -16,7 +16,7 @@
 - [ ] Java
 - [x] Rust
 - [ ] JavaScript
-- [ ] TypeScript
+- [x] TypeScript
 
 _If your favorite language is missing- please generate an issue or implement it by yourself._
 
