@@ -13,11 +13,16 @@
 - [x] C
 - [x] Go
 - [x] C++
-- [ ] Java
+- [x] Java
 - [x] Rust
 - [x] TypeScript
 
 _If your favorite language is missing- please generate an issue or implement it by yourself._
+
+## ToDo
+
+- [ ] Refactor
+- [ ] Add verbose
 
 ---
 
