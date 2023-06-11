@@ -15,7 +15,6 @@ func main() {
 
 	flag.Parse()
 
-	// show usage message if no flag or `-h` flag is passed
 	if flag.NFlag() == 0 || *helpMsg {
 		usage()
 		os.Exit(1)
@@ -42,6 +41,9 @@ func main() {
 	case "c":
 		cLangCode := generateCCode(schema)
 		writeCCodeToFile(*outputFile, cLangCode)
+	case "cpp":
+		CPPCode := generateCPPCode(schema)
+		writeCPPCodeToFile(*outputFile, CPPCode)
 	case "go":
 		goLangCode := generateGoCode(schema)
 		writeGoCodeToFile(*outputFile, goLangCode)
