@@ -12,10 +12,9 @@
 
 - [x] C
 - [x] Go
-- [ ] C++
+- [x] C++
 - [ ] Java
 - [x] Rust
-- [ ] JavaScript
 - [x] TypeScript
 
 _If your favorite language is missing- please generate an issue or implement it by yourself._

@@ -7,20 +7,18 @@ import (
 	"strings"
 )
 
-type CPPType struct {
+type JavaType struct {
 	Title      string
 	Properties map[string]interface{}
 	Items      interface{}
 }
 
-var CPPtypedefStructsList []string
+var typedefClassesList []string
 
-func writeCPPCodeToFile(outFile string, CPPCode string) {
-	var generatedCPPCode string = `#include <iostream>
-#include <vector>
-#include <string>` + CPPCode
+func writeJavaCodeToFile(outFile string, javaCode string) {
+	var generatedJavaCode string = javaCode
 
-	err := os.WriteFile(outFile, []byte(generatedCPPCode), 0644)
+	err := os.WriteFile(outFile, []byte(generatedJavaCode), 0644)
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)
@@ -28,28 +26,26 @@ func writeCPPCodeToFile(outFile string, CPPCode string) {
 	fmt.Println("Done!")
 }
 
-func generateCPPCode(schema *Schema) string {
+func generateJavaCode(schema *Schema) string {
 	var builder strings.Builder
 
-	processSchemaForCPP(&builder, schema, "")
+	processSchemaForJava(&builder, schema, "")
 	return builder.String()
 }
 
-func getCPPType(property interface{}) string {
+func getJavaType(property interface{}) string {
 	switch p := property.(type) {
 	case map[string]interface{}:
 		if pType, ok := p["type"].(string); ok {
 			switch pType {
 			case "string":
-				return "std::string"
-			case "number":
+				return "String"
+			case "number", "decimal":
 				return "double"
 			case "integer":
 				return "int"
 			case "boolean":
-				return "bool"
-			case "decimal":
-				return "float"
+				return "boolean"
 			case "object":
 				title, ok := p["title"].(string)
 				if ok {
@@ -61,19 +57,17 @@ func getCPPType(property interface{}) string {
 	return "unknown"
 }
 
-func getItemCPPType(property interface{}) string {
+func getItemJavaType(property interface{}) string {
 	switch p := property.(type) {
 	case map[string]interface{}:
 		if pType, ok := p["type"].(string); ok {
 			switch pType {
 			case "string":
-				return "std::string"
-			case "number":
+				return "String"
+			case "number", "decimal":
 				return "double"
 			case "integer":
 				return "int"
-			case "decimal":
-				return "float"
 			case "object":
 				title, ok := p["title"].(string)
 				if ok {
@@ -85,7 +79,7 @@ func getItemCPPType(property interface{}) string {
 	return "unknown"
 }
 
-func processSchemaForCPP(builder *strings.Builder, schema *Schema, indent string) {
+func processSchemaForJava(builder *strings.Builder, schema *Schema, indent string) {
 	if schema.Properties != nil {
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -94,8 +88,8 @@ func processSchemaForCPP(builder *strings.Builder, schema *Schema, indent string
 		sort.Strings(propertyNames)
 
 		if schema.Title != "" {
-			firstStructName := getFirstWordFromTitle(schema.Title)
-			addToTypedefStructsListCPP(firstStructName)
+			firstClassName := getFirstWordFromTitle(schema.Title)
+			addToTypedefClassesListJava(firstClassName)
 		}
 
 		for _, name := range propertyNames {
@@ -111,11 +105,11 @@ func processSchemaForCPP(builder *strings.Builder, schema *Schema, indent string
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processSchemaForCPP(builder, nestedSchema, indent)
-				} else if isCPPArrayType(property) {
+					processSchemaForJava(builder, nestedSchema, indent)
+				} else if isJavaArrayType(property) {
 					propertyMap := property.(map[string]interface{})
 					nestedSchema := propertyMap["items"].(map[string]interface{})
-					if isCPPObjectType(nestedSchema) {
+					if isJavaObjectType(nestedSchema) {
 						nestedTitle := nestedSchema["title"].(string)
 						nestedSchema = nestedSchema["properties"].(map[string]interface{})
 						nestedPropertyMap := nestedSchema
@@ -123,31 +117,31 @@ func processSchemaForCPP(builder *strings.Builder, schema *Schema, indent string
 							Title:      nestedTitle,
 							Properties: nestedPropertyMap,
 						}
-						processSchemaForCPP(builder, itemsSchema, indent)
+						processSchemaForJava(builder, itemsSchema, indent)
 					}
 				}
 			}
 		}
 
-		var structName string = getFirstWordFromTitle(schema.Title)
-		builder.WriteString(indent + "struct " + structName + " {\n")
+		var className string = getFirstWordFromTitle(schema.Title)
+		builder.WriteString(indent + "class " + className + " {\n")
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
-			if isCPPArrayType(property) {
-				itemType := getCPPArrayType(property)
-				builder.WriteString(indent + "    " + "std::vector<" + itemType + "> " + name + ";\n")
+			if isJavaArrayType(property) {
+				itemType := getJavaArrayType(property)
+				builder.WriteString(indent + "    " + "List<" + itemType + "> " + name + ";\n")
 			} else {
-				propertyType := getCPPType(property)
+				propertyType := getJavaType(property)
 				builder.WriteString(indent + "    " + propertyType + " " + name + ";\n")
 			}
 		}
 
-		builder.WriteString(indent + "};\n\n")
+		builder.WriteString(indent + "}\n\n")
 	}
 }
 
-func isCPPArrayType(property interface{}) bool {
+func isJavaArrayType(property interface{}) bool {
 	switch p := property.(type) {
 	case map[string]interface{}:
 		if _, ok := p["type"]; ok {
@@ -157,7 +151,7 @@ func isCPPArrayType(property interface{}) bool {
 	return false
 }
 
-func isCPPObjectType(property interface{}) bool {
+func isJavaObjectType(property interface{}) bool {
 	switch p := property.(type) {
 	case map[string]interface{}:
 		if _, ok := p["type"]; ok {
@@ -167,16 +161,16 @@ func isCPPObjectType(property interface{}) bool {
 	return false
 }
 
-func getCPPArrayType(property interface{}) string {
+func getJavaArrayType(property interface{}) string {
 	switch p := property.(type) {
 	case map[string]interface{}:
 		if items, ok := p["items"]; ok {
-			return getItemCPPType(items)
+			return getItemJavaType(items)
 		}
 	}
 	return "unknown"
 }
 
-func addToTypedefStructsListCPP(structName string) {
-	CPPtypedefStructsList = append(CPPtypedefStructsList, structName)
+func addToTypedefClassesListJava(className string) {
+	typedefClassesList = append(typedefClassesList, className)
 }
