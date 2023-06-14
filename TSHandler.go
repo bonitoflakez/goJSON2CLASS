@@ -1,25 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"sort"
 	"strings"
 )
-
-type TSType struct {
-	Name     string
-	DataType string
-}
-
-func writeTSCodeToFile(outFile string, TSCode string) {
-	err := os.WriteFile(outFile, []byte(TSCode), 0644)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-	fmt.Println("Done!")
-}
 
 func generateTSCode(schema *Schema) string {
 	var builder strings.Builder

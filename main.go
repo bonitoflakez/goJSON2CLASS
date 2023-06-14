@@ -36,23 +36,25 @@ func main() {
 		fmt.Println("No language specified")
 		os.Exit(1)
 	case "rust":
-		rustCode := generateRustCode(schema, *publicDef)
-		writeRustCodeToFile(*outputFile, rustCode)
+		code := generateRustCode(schema, *publicDef)
+		writeCodeToFile(*outputFile, code)
 	case "c":
-		cLangCode := generateCCode(schema)
-		writeCCodeToFile(*outputFile, cLangCode)
+		code := generateCCode(schema)
+		var outputCode string = cHeaderFormat() + code
+		writeCodeToFile(*outputFile, outputCode)
 	case "cpp":
-		CPPCode := generateCPPCode(schema)
-		writeCPPCodeToFile(*outputFile, CPPCode)
+		code := generateCPPCode(schema)
+		var outputCode string = getCPPHeaderIncludes() + code
+		writeCodeToFile(*outputFile, outputCode)
 	case "go":
-		goLangCode := generateGoCode(schema)
-		writeGoCodeToFile(*outputFile, goLangCode)
+		code := generateGoCode(schema)
+		writeCodeToFile(*outputFile, code)
 	case "ts":
-		TSCode := generateTSCode(schema)
-		writeTSCodeToFile(*outputFile, TSCode)
+		code := generateTSCode(schema)
+		writeCodeToFile(*outputFile, code)
 	case "java":
-		JavaCode := generateJavaCode(schema)
-		writeJavaCodeToFile(*outputFile, JavaCode)
+		code := generateJavaCode(schema)
+		writeCodeToFile(*outputFile, code)
 	default:
 		fmt.Println(*targetLang + " is not supported :(")
 	}

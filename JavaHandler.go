@@ -1,34 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"sort"
 	"strings"
 )
 
-type JavaType struct {
-	Title      string
-	Properties map[string]interface{}
-	Items      interface{}
-}
-
 var typedefClassesList []string
-
-func writeJavaCodeToFile(outFile string, javaCode string) {
-	var generatedJavaCode string = javaCode
-
-	err := os.WriteFile(outFile, []byte(generatedJavaCode), 0644)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-	fmt.Println("Done!")
-}
 
 func generateJavaCode(schema *Schema) string {
 	var builder strings.Builder
-
 	processSchemaForJava(&builder, schema, "")
 	return builder.String()
 }
@@ -123,7 +103,7 @@ func processSchemaForJava(builder *strings.Builder, schema *Schema, indent strin
 			}
 		}
 
-		var className string = getFirstWordFromTitle(schema.Title)
+		className := getFirstWordFromTitle(schema.Title)
 		builder.WriteString(indent + "class " + className + " {\n")
 
 		for _, name := range propertyNames {
@@ -139,38 +119,4 @@ func processSchemaForJava(builder *strings.Builder, schema *Schema, indent strin
 
 		builder.WriteString(indent + "}\n\n")
 	}
-}
-
-func isJavaArrayType(property interface{}) bool {
-	switch p := property.(type) {
-	case map[string]interface{}:
-		if _, ok := p["type"]; ok {
-			return p["type"] == "array"
-		}
-	}
-	return false
-}
-
-func isJavaObjectType(property interface{}) bool {
-	switch p := property.(type) {
-	case map[string]interface{}:
-		if _, ok := p["type"]; ok {
-			return p["type"] == "object"
-		}
-	}
-	return false
-}
-
-func getJavaArrayType(property interface{}) string {
-	switch p := property.(type) {
-	case map[string]interface{}:
-		if items, ok := p["items"]; ok {
-			return getItemJavaType(items)
-		}
-	}
-	return "unknown"
-}
-
-func addToTypedefClassesListJava(className string) {
-	typedefClassesList = append(typedefClassesList, className)
 }

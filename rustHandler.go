@@ -1,25 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"sort"
 	"strings"
 )
-
-type RustType struct {
-	Name     string
-	DataType string
-}
-
-func writeRustCodeToFile(outFile string, rustCode string) {
-	err := os.WriteFile(outFile, []byte(rustCode), 0644)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-	fmt.Println("Done!")
-}
 
 func generateRustCode(schema *Schema, pubFlag bool) string {
 	var builder strings.Builder
@@ -79,23 +63,18 @@ func processSchemaForRust(builder *strings.Builder, schema *Schema, indent strin
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
-			if pubFlag {
-				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
-				builder.WriteString(indent + "\tpub " + name + ": " + getRustType(property) + ",\n")
-			} else {
-				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
-				builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
-			}
+			serdeAnnotation := "#[serde(rename = \"" + name + "\")]\n"
+			declaration := getPropertyDeclaration(name, getRustType(property), pubFlag)
+			builder.WriteString(indent + serdeAnnotation + indent + declaration + ",\n")
 		}
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within object properties
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
 				if nestedSchema, ok := propertyMap["properties"].(map[string]interface{}); ok {
-					nestedTitle, ok := propertyMap["title"].(string)
-					if !ok {
+					nestedTitle := propertyMap["title"].(string)
+					if nestedTitle == "" {
 						nestedTitle = name
 					}
 					nestedPropertyMap := nestedSchema
@@ -108,22 +87,13 @@ func processSchemaForRust(builder *strings.Builder, schema *Schema, indent strin
 			}
 		}
 	} else if schema.Items != nil {
-		// handle array items
-		if pubFlag {
-			builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-			builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
-			builder.WriteString(indent + "\t" + "#[serde(rename = \"items\")]\n")
-			builder.WriteString(indent + "\tpub " + "items: Vec<" + getRustType(schema.Items) + ">,\n")
-			builder.WriteString(indent + "}\n\n")
-		} else {
-			builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-			builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
-			builder.WriteString(indent + "\t" + "#[serde(rename = \"items\")]\n")
-			builder.WriteString(indent + "\t" + "items: Vec<" + getRustType(schema.Items) + ">,\n")
-			builder.WriteString(indent + "}\n\n")
-		}
+		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
+		builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
+		serdeAnnotation := "#[serde(rename = \"items\")]\n"
+		declaration := getPropertyDeclaration("items", "Vec<"+getRustType(schema.Items)+">", pubFlag)
+		builder.WriteString(indent + serdeAnnotation + indent + declaration + ",\n")
+		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within array items
 		processNestedObjectsForRust(builder, schema.Items, indent+"", schema.Items.Title, pubFlag)
 	}
 }
@@ -141,23 +111,18 @@ func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, inden
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
-			if pubFlag {
-				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
-				builder.WriteString(indent + "\tpub " + name + ": " + getRustType(property) + ",\n")
-			} else {
-				builder.WriteString(indent + "\t#[serde(rename = \"" + name + "\")]\n")
-				builder.WriteString(indent + "\t" + name + ": " + getRustType(property) + ",\n")
-			}
+			serdeAnnotation := "#[serde(rename = \"" + name + "\")]\n"
+			declaration := getPropertyDeclaration(name, getRustType(property), pubFlag)
+			builder.WriteString(indent + serdeAnnotation + indent + declaration + ",\n")
 		}
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within nested properties
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
 				if nestedSchema, ok := propertyMap["properties"].(map[string]interface{}); ok {
-					nestedTitle, ok := propertyMap["title"].(string)
-					if !ok {
+					nestedTitle := propertyMap["title"].(string)
+					if nestedTitle == "" {
 						nestedTitle = name
 					}
 					nestedPropertyMap := nestedSchema

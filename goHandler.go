@@ -1,25 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"sort"
 	"strings"
 )
-
-type GoType struct {
-	Name     string
-	DataType string
-}
-
-func writeGoCodeToFile(outFile string, goCode string) {
-	err := os.WriteFile(outFile, []byte(goCode), 0644)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-	fmt.Println("Done!")
-}
 
 func generateGoCode(schema *Schema) string {
 	var builder strings.Builder
@@ -82,7 +66,6 @@ func processSchemaForGo(builder *strings.Builder, schema *Schema, indent string)
 		}
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within object properties
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
@@ -101,12 +84,10 @@ func processSchemaForGo(builder *strings.Builder, schema *Schema, indent string)
 			}
 		}
 	} else if schema.Items != nil {
-		// handle array items
 		builder.WriteString(indent + "type " + getFirstWordFromTitle(schema.Title) + " struct {\n")
 		builder.WriteString(indent + "\t" + "[]" + getGoType(schema.Items) + "\n")
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within array items
 		processNestedObjectsForGo(builder, schema.Items, indent+"", schema.Items.Title)
 	}
 }
@@ -127,7 +108,6 @@ func processNestedObjectsForGo(builder *strings.Builder, schema *Schema, indent 
 		}
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within nested properties
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
