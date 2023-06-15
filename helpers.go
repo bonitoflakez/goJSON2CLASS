@@ -151,8 +151,8 @@ func getCHeaderIncludes() string {
 
 func getCPPHeaderIncludes() string {
 	return `#include <iostream>
-	#include <vector>
-	#include <string>`
+#include <vector>
+#include <string>`
 }
 
 func isCPPArrayType(property interface{}) bool {

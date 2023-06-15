@@ -44,7 +44,7 @@ func main() {
 		writeCodeToFile(*outputFile, outputCode)
 	case "cpp":
 		code := generateCPPCode(schema)
-		var outputCode string = getCPPHeaderIncludes() + code
+		var outputCode string = getCPPHeaderIncludes() + "\n\n" + code
 		writeCodeToFile(*outputFile, outputCode)
 	case "go":
 		code := generateGoCode(schema)

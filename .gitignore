@@ -1,6 +1,4 @@
-*.c
-*.rs
-*.exe
+output
 *.json
 code_testing
 goJSON2CLASS

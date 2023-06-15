@@ -7,7 +7,7 @@ import (
 
 func generateRustCode(schema *Schema, pubFlag bool) string {
 	var builder strings.Builder
-	processSchemaForRust(&builder, schema, "", pubFlag)
+	processSchemaForRust(&builder, schema, "\t", pubFlag)
 	return builder.String()
 }
 
@@ -52,8 +52,8 @@ func getRustType(data interface{}) string {
 func processSchemaForRust(builder *strings.Builder, schema *Schema, indent string, pubFlag bool) {
 	if schema.Properties != nil {
 		builder.WriteString("use serde::{Serialize, Deserialize};\n\n")
-		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
+		builder.WriteString("#[derive(Debug, Serialize, Deserialize)]\n")
+		builder.WriteString("pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
 
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -67,7 +67,7 @@ func processSchemaForRust(builder *strings.Builder, schema *Schema, indent strin
 			declaration := getPropertyDeclaration(name, getRustType(property), pubFlag)
 			builder.WriteString(indent + serdeAnnotation + indent + declaration + ",\n")
 		}
-		builder.WriteString(indent + "}\n\n")
+		builder.WriteString("}\n\n")
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
@@ -82,26 +82,26 @@ func processSchemaForRust(builder *strings.Builder, schema *Schema, indent strin
 						Title:      nestedTitle,
 						Properties: nestedPropertyMap,
 					}
-					processNestedObjectsForRust(builder, nestedSchema, indent+"", nestedTitle, pubFlag)
+					processNestedObjectsForRust(builder, nestedSchema, indent, nestedTitle, pubFlag)
 				}
 			}
 		}
 	} else if schema.Items != nil {
-		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
+		builder.WriteString("#[derive(Debug, Serialize, Deserialize)]\n")
+		builder.WriteString("pub struct " + getFirstWordFromTitle(schema.Title) + " {\n")
 		serdeAnnotation := "#[serde(rename = \"items\")]\n"
 		declaration := getPropertyDeclaration("items", "Vec<"+getRustType(schema.Items)+">", pubFlag)
 		builder.WriteString(indent + serdeAnnotation + indent + declaration + ",\n")
-		builder.WriteString(indent + "}\n\n")
+		builder.WriteString("}\n\n")
 
-		processNestedObjectsForRust(builder, schema.Items, indent+"", schema.Items.Title, pubFlag)
+		processNestedObjectsForRust(builder, schema.Items, indent, schema.Items.Title, pubFlag)
 	}
 }
 
 func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, indent string, structName string, pubFlag bool) {
 	if schema.Properties != nil {
-		builder.WriteString(indent + "#[derive(Debug, Serialize, Deserialize)]\n")
-		builder.WriteString(indent + "pub struct " + getFirstWordFromTitle(structName) + " {\n")
+		builder.WriteString("#[derive(Debug, Serialize, Deserialize)]\n")
+		builder.WriteString("pub struct " + getFirstWordFromTitle(structName) + " {\n")
 
 		var propertyNames []string
 		for name := range schema.Properties {
@@ -115,7 +115,7 @@ func processNestedObjectsForRust(builder *strings.Builder, schema *Schema, inden
 			declaration := getPropertyDeclaration(name, getRustType(property), pubFlag)
 			builder.WriteString(indent + serdeAnnotation + indent + declaration + ",\n")
 		}
-		builder.WriteString(indent + "}\n\n")
+		builder.WriteString("}\n\n")
 
 		for _, name := range propertyNames {
 			property := schema.Properties[name]

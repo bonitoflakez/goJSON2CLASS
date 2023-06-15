@@ -21,7 +21,6 @@ _If your favorite language is missing- please generate an issue or implement it 
 
 ## ToDo
 
-- [ ] Refactor
 - [ ] Add verbose
 
 ---
