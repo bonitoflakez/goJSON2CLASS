@@ -14,7 +14,7 @@ func generateCCode(schema *Schema) string {
 	return builder.String()
 }
 
-func getCType(property interface{}) string {
+func getCDataType(property interface{}) string {
 	switch p := property.(type) {
 	case map[string]interface{}:
 		if pType, ok := p["type"].(string); ok {
@@ -27,29 +27,6 @@ func getCType(property interface{}) string {
 				return "int"
 			case "boolean":
 				return "bool"
-			case "decimal":
-				return "float"
-			case "object":
-				if title, ok := p["title"].(string); ok {
-					return getFirstWordFromTitle(title)
-				}
-			}
-		}
-	}
-	return "unknown"
-}
-
-func getItemCType(property interface{}) string {
-	switch p := property.(type) {
-	case map[string]interface{}:
-		if pType, ok := p["type"].(string); ok {
-			switch pType {
-			case "string":
-				return "char*"
-			case "number":
-				return "double"
-			case "integer":
-				return "int"
 			case "decimal":
 				return "float"
 			case "object":
@@ -116,7 +93,7 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 				hashDefineMacro := addToDefinesMap(structName, name, 50)
 				builder.WriteString(indent + "    " + itemType + " " + name + "[" + hashDefineMacro + "]" + ";\n")
 			} else {
-				propertyType := getCType(property)
+				propertyType := getCDataType(property)
 				builder.WriteString(indent + "    " + propertyType + " " + name + ";\n")
 			}
 		}
@@ -124,3 +101,26 @@ func processSchemaForC(builder *strings.Builder, schema *Schema, indent string) 
 		builder.WriteString(indent + "};\n")
 	}
 }
+
+// func getCItemType(property interface{}) string {
+// 	switch p := property.(type) {
+// 	case map[string]interface{}:
+// 		if pType, ok := p["type"].(string); ok {
+// 			switch pType {
+// 			case "string":
+// 				return "char*"
+// 			case "number":
+// 				return "double"
+// 			case "integer":
+// 				return "int"
+// 			case "decimal":
+// 				return "float"
+// 			case "object":
+// 				if title, ok := p["title"].(string); ok {
+// 					return getFirstWordFromTitle(title)
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return "unknown"
+// }

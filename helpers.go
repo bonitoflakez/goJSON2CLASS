@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// general functions
+
 func usage() {
 	fmt.Println("Usage: goJSON2CLASS -l <target-lang> -s <schema.json> -o <output.ext>")
 	fmt.Println()
@@ -71,6 +73,33 @@ func getFirstWordFromTitle(title string) string {
 	return titleWords[0]
 }
 
+// functions for C handler
+
+func cHeaderFormat() string {
+	return getCHeaderIncludes() + "\n" +
+		getPreprocessorDirectives() + "\n" +
+		getTypedefStructsList() + "\n"
+}
+
+func getPreprocessorDirectives() string {
+	var builder strings.Builder
+
+	definesMap := getPreprocessorSizeDefinesMap()
+	for define, value := range definesMap {
+		builder.WriteString(fmt.Sprintf("#define %s %d\n", define, value))
+	}
+
+	return builder.String()
+}
+
+func getTypedefStructsList() string {
+	var typedefStructBuilder strings.Builder
+	for _, structName := range typedefStructsList {
+		typedefStructBuilder.WriteString("typedef struct " + structName + " " + structName + ";\n")
+	}
+	return typedefStructBuilder.String()
+}
+
 func isArrayType(property interface{}) bool {
 	switch p := property.(type) {
 	case map[string]interface{}:
@@ -95,7 +124,7 @@ func getArrayType(property interface{}) string {
 	switch p := property.(type) {
 	case map[string]interface{}:
 		if items, ok := p["items"]; ok {
-			return getItemCType(items)
+			return getCDataType(items)
 		}
 	}
 	return "unknown"
@@ -118,46 +147,12 @@ func getCHeaderIncludes() string {
 `
 }
 
+// functions for CPP handler
+
 func getCPPHeaderIncludes() string {
 	return `#include <iostream>
 	#include <vector>
 	#include <string>`
-}
-
-func getPreprocessorDirectives() string {
-	var builder strings.Builder
-
-	definesMap := getPreprocessorSizeDefinesMap()
-	for define, value := range definesMap {
-		builder.WriteString(fmt.Sprintf("#define %s %d\n", define, value))
-	}
-
-	return builder.String()
-}
-
-func addToTypedefStructsList(structName string) {
-	typedefStructsList = append(typedefStructsList, structName)
-}
-
-func getTypedefStructsList() string {
-	var typedefStructBuilder strings.Builder
-	for _, structName := range typedefStructsList {
-		typedefStructBuilder.WriteString("typedef struct " + structName + " " + structName + ";\n")
-	}
-	return typedefStructBuilder.String()
-}
-
-func cHeaderFormat() string {
-	return getCHeaderIncludes() + "\n" +
-		getPreprocessorDirectives() + "\n" +
-		getTypedefStructsList() + "\n"
-}
-
-func getPropertyDeclaration(name, typ string, pubFlag bool) string {
-	if pubFlag {
-		return "pub " + name + ": " + typ
-	}
-	return name + ": " + typ
 }
 
 func isCPPArrayType(property interface{}) bool {
@@ -187,9 +182,21 @@ func getCPPArrayType(property interface{}) string {
 	return "unknown"
 }
 
-func addToTypedefStructsListCPP(structName string) {
-	CPPtypedefStructsList = append(CPPtypedefStructsList, structName)
+// used in c, cpp and java handler
+func addToTypedefStructsList(structName string) {
+	typedefStructsList = append(typedefStructsList, structName)
 }
+
+// function for rust handler
+
+func getPropertyDeclaration(name, typ string, pubFlag bool) string {
+	if pubFlag {
+		return "pub " + name + ": " + typ
+	}
+	return name + ": " + typ
+}
+
+// functions for java handler
 
 func isJavaArrayType(property interface{}) bool {
 	switch p := property.(type) {
@@ -219,8 +226,4 @@ func getJavaArrayType(property interface{}) string {
 		}
 	}
 	return "unknown"
-}
-
-func addToTypedefClassesListJava(className string) {
-	typedefClassesList = append(typedefClassesList, className)
 }

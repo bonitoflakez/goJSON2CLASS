@@ -65,7 +65,6 @@ func processSchemaForTS(builder *strings.Builder, schema *Schema, indent string)
 		}
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within object properties
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {
@@ -84,12 +83,10 @@ func processSchemaForTS(builder *strings.Builder, schema *Schema, indent string)
 			}
 		}
 	} else if schema.Items != nil {
-		// handle array items
 		builder.WriteString(indent + "interface " + getFirstWordFromTitle(schema.Title) + " {\n")
 		builder.WriteString(indent + "\t" + getTSType(schema.Items) + "[]" + "\n")
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within array items
 		processNestedObjectsForTS(builder, schema.Items, indent+"", schema.Items.Title)
 	}
 }
@@ -110,7 +107,6 @@ func processNestedObjectsForTS(builder *strings.Builder, schema *Schema, indent 
 		}
 		builder.WriteString(indent + "}\n\n")
 
-		// handle nested objects within nested properties
 		for _, name := range propertyNames {
 			property := schema.Properties[name]
 			if propertyMap, ok := property.(map[string]interface{}); ok {

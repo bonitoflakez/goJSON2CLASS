@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-var typedefClassesList []string
-
 func generateJavaCode(schema *Schema) string {
 	var builder strings.Builder
 	processSchemaForJava(&builder, schema, "")
@@ -69,7 +67,7 @@ func processSchemaForJava(builder *strings.Builder, schema *Schema, indent strin
 
 		if schema.Title != "" {
 			firstClassName := getFirstWordFromTitle(schema.Title)
-			addToTypedefClassesListJava(firstClassName)
+			addToTypedefStructsList(firstClassName)
 		}
 
 		for _, name := range propertyNames {

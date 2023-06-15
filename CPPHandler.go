@@ -72,7 +72,7 @@ func processSchemaForCPP(builder *strings.Builder, schema *Schema, indent string
 
 		if schema.Title != "" {
 			firstStructName := getFirstWordFromTitle(schema.Title)
-			addToTypedefStructsListCPP(firstStructName)
+			addToTypedefStructsList(firstStructName)
 		}
 
 		for _, name := range propertyNames {
