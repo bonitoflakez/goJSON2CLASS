@@ -37,7 +37,7 @@
 ## Generating C Code
 
 ```txt
->> ./goJSON2CLASS -l c -s schema.json -o output.rs
+>> ./goJSON2CLASS -l c -s schema.json -o output.c
 Done!
 ```
 
@@ -77,7 +77,7 @@ Done!
 ## Generating Rust Code
 
 ```sh
->> ./goJSON2CLASS -l rust -s schema.json -o output.c
+>> ./goJSON2CLASS -l rust -s schema.json -o output.rs
 ```
 
 Output
